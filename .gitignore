@@ -15,6 +15,6 @@
 *.toc
 *.wav
 *.sh
-encoder/saved_models/*
-synthesizer/saved_models/*
-vocoder/saved_models/*
+rtvc/encoder/saved_models/*
+rtvc/synthesizer/saved_models/*
+rtvc/vocoder/saved_models/*
