@@ -13,7 +13,7 @@ When first loaded, this module should perform pre-flight checks, and report whet
 from rtvc.encoder.params_model import model_embedding_size as speaker_embedding_size
 from rtvc.utils.argutils import print_args
 from rtvc.utils.modelutils import check_model_paths
-from rtvc.synthesizer import Synthesizer
+from rtvc.synthesizer.inference import Synthesizer
 from rtvc.encoder import inference as encoder
 from rtvc.vocoder import inference as vocoder
 from pathlib import Path
@@ -48,12 +48,14 @@ def preFlightChecks(download_models=False,using_cpu=False,mp3support=SUPPORT_MP3
     #first we need to check for if the GPU is available...
     if mp3support:
         try:
-            librosa.load("samples/1320_00000.mp3")
+            print("Debug: Loading Librosa...")
+            librosa.load("rtvc/samples/1320_00000.mp3")
         except NoBackendError:
             print("Librosa will be unable to open mp3 files if additional software is not installed.\n"
                   "Please install ffmpeg and restart the program, or continue with no MP3 support.")
             SUPPORT_MP3=False
 
+    print("debug: checking if cuda is available")
     if torch.cuda.is_available():
         device_id = torch.cuda.current_device()
         gpu_properties = torch.cuda.get_device_properties(device_id)
@@ -69,12 +71,14 @@ def preFlightChecks(download_models=False,using_cpu=False,mp3support=SUPPORT_MP3
     else:
         USE_CPU=True
     try:
+        print("debug: checking model paths...")
         ## Remind the user to download pretrained models if needed
         #check_model_paths(encoder_path=encoderpath,
         #                  synthesizer_path=synthpath,
         #                  vocoder_path=vocoderpath)
         modelcheckdict=check_local_model_paths(encoderpath,synthpath,vocoderpath)
         #check if the models exist and are installed. If not, prompt the user if they would like auto installation TODO.
+        #No. This should all be imported, which means it should only prompt if the input values are outside of default.
         #Otherwise, raise an error that ends the test saying to install the models and specify the paths before trying again
         if not (modelcheckdict['encoder'] and modelcheckdict['synthesizer'] and modelcheckdict['vocoder']):
             raise Exception("Could not locate models specified. Found Models: "+str(modelcheckdict))
@@ -83,7 +87,7 @@ def preFlightChecks(download_models=False,using_cpu=False,mp3support=SUPPORT_MP3
         encoder.load_model(encoderpath)
         synthesizer = Synthesizer(synthpath)
         vocoder.load_model(vocoderpath)
-
+        print("debug: running a test")
         ## Run a test
         # Forward an audio waveform of zeroes that lasts 1 second. Notice how we can get the encoder's
         # sampling rate, which may differ.
