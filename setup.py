@@ -11,6 +11,7 @@ import distutils.text_file
 from pathlib import Path
 from typing import List
 
+
 # Always prefer setuptools over distutils
 import setuptools
 
@@ -35,6 +36,7 @@ setuptools.setup(
     install_requires=_parse_requirements('requirements.txt'),
     #install_requires=parse_requirements('requirements.txt', session='hack'),
     packages = setuptools.find_packages(),
+    include_package_data=True,
     classifiers=['Development Status :: 4 - Beta',
               'Intended Audience :: End Users/Desktop',
               'Intended Audience :: Developers',

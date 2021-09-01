@@ -1,7 +1,7 @@
 from rtvc.encoder.params_model import model_embedding_size as speaker_embedding_size
 from rtvc.utils.argutils import print_args
 from rtvc.utils.modelutils import check_model_paths
-from rtvc.synthesizer import Synthesizer
+from rtvc.synthesizer.inference import Synthesizer
 from rtvc.encoder import inference as encoder
 from rtvc.vocoder import inference as vocoder
 from pathlib import Path
