@@ -34,6 +34,8 @@ DEFAULT_SYNTHESIZER_PATH="synthesizer/saved_models/pretrained/pretrained.pt"
 
 #we just want to reutrn the audio -- not necessarily play it. No need to check if audio devices exist!
 def preFlightChecks(download_models=False,using_cpu=False,mp3support=SUPPORT_MP3,encoderpath=None,synthpath=None,vocoderpath=None):
+    path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(path)
     if encoderpath is None:
         #prompt user for encoder path, provide default for just entry
         encoderpath=input("Please enter the path to the encoder (hit enter to use default)> ") or DEFAULT_ENCODER_PATH
@@ -49,7 +51,9 @@ def preFlightChecks(download_models=False,using_cpu=False,mp3support=SUPPORT_MP3
     if mp3support:
         try:
             print("Debug: Loading Librosa...")
-            librosa.load("rtvc/samples/1320_00000.mp3")
+            #so this isn't working hardcoded. It cannot find the file. But I want this part of the module -- lets find out
+            #how to locally reference things
+            librosa.load(dir_path+"/samples/1320_00000.mp3")
         except NoBackendError:
             print("Librosa will be unable to open mp3 files if additional software is not installed.\n"
                   "Please install ffmpeg and restart the program, or continue with no MP3 support.")
@@ -84,6 +88,9 @@ def preFlightChecks(download_models=False,using_cpu=False,mp3support=SUPPORT_MP3
             raise Exception("Could not locate models specified. Found Models: "+str(modelcheckdict))
             #that should hold for now until I master the auto installer. I'm putting too many features in the first run!
         ## Load the models one by one.
+        encoderpath=Path(encoderpath)
+        synthpath=Path(synthpath)
+        vocoderpath=Path(vocoderpath)
         encoder.load_model(encoderpath)
         synthesizer = Synthesizer(synthpath)
         vocoder.load_model(vocoderpath)
@@ -137,11 +144,11 @@ def check_local_model_paths(encpath,synthpath,vocpath):
     encfound=False
     synthfound=False
     vocfound=False
-    if (encpath.is_file() or encpath.is_dir()):
+    if (os.path.exists(encpath)):
         encfound=True
-    if synthpath.is_file() or synthpath.is_dir():
+    if os.path.exists(synthpath):
         synthfound=True
-    if vocpath.is_file() or vocpath.is_dir():
+    if os.path.exists(vocpath):
         vocfound=True
 
     return {"encoder":encfound,"synthesizer":synthfound,"vocoder":vocfound}
@@ -161,15 +168,18 @@ class voiceclone:
         modelcheckdict = check_local_model_paths(encoderpath, synthesizerpath, vocoderpath)
         if not (modelcheckdict['encoder'] and modelcheckdict['synthesizer'] and modelcheckdict['vocoder']):
             raise Exception("Could not locate models specified. Found Models: " + str(modelcheckdict))
+        encoderpath=Path(encoderpath)
+        synthesizerpath=Path(synthesizerpath)
+        vocoderpath=Path(vocoderpath)
         encoder.load_model(encoderpath)
         synthesizer = Synthesizer(synthesizerpath)
         vocoder.load_model(vocoderpath)
         #finally we can actually give some meat to this thing...
-        in_fpath = Path(input(voiceactor).replace("\"", "").replace("\'", ""))
+        in_fpath = Path(voiceactor)#Path(input(voiceactor).replace("\"", "").replace("\'", ""))
 
         if in_fpath.suffix.lower() == ".mp3" and not SUPPORT_MP3:
             raise Exception("Your current installation does not support .mp3 files. Please specify another format and try again.")
-        preprocessed_wav = encoder.preprocess_wav(in_fpath)
+        #preprocessed_wav = encoder.preprocess_wav(in_fpath)
         original_wav, sampling_rate = librosa.load(str(in_fpath))
         preprocessed_wav = encoder.preprocess_wav(original_wav, sampling_rate)
         embed = encoder.embed_utterance(preprocessed_wav)
