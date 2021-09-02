@@ -14,7 +14,7 @@ import librosa
 class Synthesizer:
     sample_rate = hparams.sample_rate
     hparams = hparams
-    
+
     def __init__(self, model_fpath: Path, verbose=True):
         """
         The model isn't instantiated and loaded in memory until needed or until load() is called.
@@ -24,7 +24,7 @@ class Synthesizer:
         """
         self.model_fpath = model_fpath
         self.verbose = verbose
- 
+
         # Check for GPU
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -32,7 +32,7 @@ class Synthesizer:
             self.device = torch.device("cpu")
         if self.verbose:
             print("Synthesizer using device:", self.device)
-        
+
         # Tacotron model will be instantiated later on first use.
         self._model = None
 
@@ -41,7 +41,7 @@ class Synthesizer:
         Whether the model is loaded in memory.
         """
         return self._model is not None
-    
+
     def load(self):
         """
         Instantiates and loads the model given the weights file that was passed in the constructor.
@@ -65,7 +65,8 @@ class Synthesizer:
         self._model.eval()
 
         if self.verbose:
-            print("Loaded synthesizer \"%s\" trained to step %d" % (self.model_fpath.name, self._model.state_dict()["step"]))
+            print("Loaded synthesizer \"%s\" trained to step %d" % (
+            self.model_fpath.name, self._model.state_dict()["step"]))
 
     def synthesize_spectrograms(self, texts: List[str],
                                 embeddings: Union[np.ndarray, List[np.ndarray]],
@@ -89,7 +90,7 @@ class Synthesizer:
             tts_k = self._model.get_step() // 1000
 
             simple_table([("Tacotron", str(tts_k) + "k"),
-                        ("r", self._model.r)])
+                          ("r", self._model.r)])
 
         # Preprocess text inputs
         inputs = [text_to_sequence(text.strip(), hparams.tts_cleaner_names) for text in texts]
@@ -97,10 +98,10 @@ class Synthesizer:
             embeddings = [embeddings]
 
         # Batch inputs
-        batched_inputs = [inputs[i:i+hparams.synthesis_batch_size]
-                             for i in range(0, len(inputs), hparams.synthesis_batch_size)]
-        batched_embeds = [embeddings[i:i+hparams.synthesis_batch_size]
-                             for i in range(0, len(embeddings), hparams.synthesis_batch_size)]
+        batched_inputs = [inputs[i:i + hparams.synthesis_batch_size]
+                          for i in range(0, len(inputs), hparams.synthesis_batch_size)]
+        batched_embeds = [embeddings[i:i + hparams.synthesis_batch_size]
+                          for i in range(0, len(embeddings), hparams.synthesis_batch_size)]
 
         specs = []
         for i, batch in enumerate(batched_inputs, 1):
@@ -114,7 +115,7 @@ class Synthesizer:
             chars = np.stack(chars)
 
             # Stack speaker embeddings into 2D array for batch processing
-            speaker_embeds = np.stack(batched_embeds[i-1])
+            speaker_embeds = np.stack(batched_embeds[i - 1])
 
             # Convert to tensor
             chars = torch.tensor(chars).long().to(self.device)
@@ -154,10 +155,10 @@ class Synthesizer:
             wav = Synthesizer.load_preprocess_wav(fpath_or_wav)
         else:
             wav = fpath_or_wav
-        
+
         mel_spectrogram = audio.melspectrogram(wav, hparams).astype(np.float32)
         return mel_spectrogram
-    
+
     @staticmethod
     def griffin_lim(mel):
         """

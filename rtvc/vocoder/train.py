@@ -1,23 +1,25 @@
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+from torch import optim
+from torch.utils.data import DataLoader
+
+import rtvc.vocoder.hparams as hp
+from rtvc.vocoder.display import stream, simple_table
+from rtvc.vocoder.distribution import discretized_mix_logistic_loss
+from rtvc.vocoder.gen_wavernn import gen_testset
 from rtvc.vocoder.models.fatchord_version import WaveRNN
 from rtvc.vocoder.vocoder_dataset import VocoderDataset, collate_vocoder
-from rtvc.vocoder.distribution import discretized_mix_logistic_loss
-from rtvc.vocoder.display import stream, simple_table
-from rtvc.vocoder.gen_wavernn import gen_testset
-from torch.utils.data import DataLoader
-from pathlib import Path
-from torch import optim
-import torch.nn.functional as F
-import rtvc.vocoder.hparams as hp
-import numpy as np
-import time
-import torch
 
 
 def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_truth: bool,
           save_every: int, backup_every: int, force_restart: bool):
     # Check to make sure the hop length is correctly factorised
     assert np.cumprod(hp.voc_upsample_factors)[-1] == hp.hop_length
-    
+
     # Instantiate the model
     print("Initializing the model...")
     model = WaveRNN(
@@ -39,11 +41,11 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
         model = model.cuda()
         device = torch.device('cuda')
     else:
-        device = torch.device('cpu')   
+        device = torch.device('cpu')
 
-    # Initialize the optimizer
+        # Initialize the optimizer
     optimizer = optim.Adam(model.parameters())
-    for p in optimizer.param_groups: 
+    for p in optimizer.param_groups:
         p["lr"] = hp.voc_lr
     loss_func = F.cross_entropy if model.mode == "RAW" else discretized_mix_logistic_loss
 
@@ -58,7 +60,7 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
         print("\nLoading weights at %s" % weights_fpath)
         model.load(weights_fpath, optimizer)
         print("WaveRNN weights loaded from step %d" % model.step)
-    
+
     # Initialize the dataset
     metadata_fpath = syn_dir.joinpath("train.txt") if ground_truth else \
         voc_dir.joinpath("synthesized.txt")
@@ -74,7 +76,7 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
     simple_table([('Batch size', hp.voc_batch_size),
                   ('LR', hp.voc_lr),
                   ('Sequence Len', hp.voc_seq_len)])
-    
+
     for epoch in range(1, 350):
         data_loader = DataLoader(dataset,
                                  collate_fn=collate_vocoder,
@@ -88,7 +90,7 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
         for i, (x, y, m) in enumerate(data_loader, 1):
             if torch.cuda.is_available():
                 x, m, y = x.cuda(), m.cuda(), y.cuda()
-            
+
             # Forward pass
             y_hat = model(x, m)
             if model.mode == 'RAW':
@@ -96,7 +98,7 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
             elif model.mode == 'MOL':
                 y = y.float()
             y = y.unsqueeze(-1)
-            
+
             # Backward pass
             loss = loss_func(y_hat, y)
             optimizer.zero_grad()
@@ -110,17 +112,16 @@ def train(run_id: str, syn_dir: Path, voc_dir: Path, models_dir: Path, ground_tr
             step = model.get_step()
             k = step // 1000
 
-            if backup_every != 0 and step % backup_every == 0 :
+            if backup_every != 0 and step % backup_every == 0:
                 model.checkpoint(model_dir, optimizer)
-                
-            if save_every != 0 and step % save_every == 0 :
+
+            if save_every != 0 and step % save_every == 0:
                 model.save(weights_fpath, optimizer)
 
             msg = f"| Epoch: {epoch} ({i}/{len(data_loader)}) | " \
-                f"Loss: {avg_loss:.4f} | {speed:.1f} " \
-                f"steps/s | Step: {k}k | "
+                  f"Loss: {avg_loss:.4f} | {speed:.1f} " \
+                  f"steps/s | Step: {k}k | "
             stream(msg)
-
 
         gen_testset(model, test_loader, hp.voc_gen_at_checkpoint, hp.voc_gen_batched,
                     hp.voc_target, hp.voc_overlap, model_dir)
