@@ -45,9 +45,9 @@ for the module.
 Inputs:
 ```
 inputtext -- Required String, is the input text to be vocoded, default None
-encoderpath -- Required encoder path, defaults to the DEFAULT_ENCODER_PATH
-vocoderpath -- Required vocoder path, defaults to the DEFAULT_VOCODER_PATH
-synthesizerpath -- Required synthesizer path, defaults to the DEFAULT_SYNTHESIZER_PATH
+encoderpath -- Required encoder path, defaults to the DEFAULT_ENCODER_PATH if not specified (with original default of None)
+vocoderpath -- Required vocoder path, defaults to the DEFAULT_VOCODER_PATH if not specified (with original default of None)
+synthesizerpath -- Required synthesizer path, defaults to the DEFAULT_SYNTHESIZER_PATH if not specified (with original default of None)
 voiceactor -- Required String, is the path to the audio file to be referenced, Default None
 savepath -- Optional String, is the path to the desired save location and type of vocoded audio output, Default None
 
