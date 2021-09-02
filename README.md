@@ -36,6 +36,10 @@ import rtvc
 
 rtvc.voiceclone(text="hello, world!",voiceactor="/path/to/spoken_voice.mp3")
 ```
+The preFlightChecks will prompt you for the encoder, vocoder and synthesizer models if they
+are not located within the default directory (rtvc/encoder, vocoder, and synthesizer, respectively).
+Once you enter that information, however, the locations are saved in memory and are set as the defaults
+for the module.
 
 ####voiceclone Class:
 Inputs:
