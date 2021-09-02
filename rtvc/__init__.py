@@ -34,26 +34,31 @@ DEFAULT_SYNTHESIZER_PATH = "synthesizer/saved_models/pretrained/pretrained.pt"
 
 
 # we just want to reutrn the audio -- not necessarily play it. No need to check if audio devices exist!
-def preFlightChecks(download_models=False, using_cpu=False, mp3support=SUPPORT_MP3, encoderpath=None, synthpath=None,
-                    vocoderpath=None):
+def preFlightChecks(download_models=False, using_cpu=False, mp3support=SUPPORT_MP3, encoderpath=DEFAULT_ENCODER_PATH,
+                    synthpath=DEFAULT_SYNTHESIZER_PATH,
+                    vocoderpath=DEFAULT_SYNTHESIZER_PATH):
+    global DEFAULT_SYNTHESIZER_PATH
+    global DEFAULT_ENCODER_PATH
+    global DEFAULT_VOCODER_PATH
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)
-    if encoderpath is None:
-        # prompt user for encoder path, provide default for just entry
-        encoderpath = input("Please enter the path to the encoder (hit enter to use default)> ") or DEFAULT_ENCODER_PATH
-    if synthpath is None:
-        synthpath = input(
-            "Please enter the path to the synthesizer model (hit enter to use default)> ") or DEFAULT_SYNTHESIZER_PATH
-    if vocoderpath is None:
-        vocoderpath = input(
-            "Please enter the path to the vocoder model (hit enter to use default)> ") or DEFAULT_VOCODER_PATH
+    # check to see if the default exists. If it doesn't, prompt for it, then update it so that the module can work later on without error.
+    checkpaths = check_local_model_paths(encoderpath, synthpath, vocoderpath)
+    locationdict = {"encoder": encoderpath, "synthesizer": synthpath, "vocoder": vocoderpath}
+    for item in checkpaths:
+        if not checkpaths[item]:
+            locationdict[item] = input("Please enter the full path to the " + str(item) + " model >")
+    encoderpath = locationdict["encoder"]
+    synthpath = locationdict['synthesizer']
+    vocoderpath = locationdict['vocoder']
+    DEFAULT_ENCODER_PATH = encoderpath
+    DEFAULT_SYNTHESIZER_PATH = synthpath
+    DEFAULT_VOCODER_PATH = vocoderpath
 
-    # we could always just specify defaults...
-    # we don't want this to need any arguments, as it's supposed to run on start, which is at import. We won't have this info yet!!!
     # first we need to check for if the GPU is available...
     if mp3support:
         try:
-            print("Debug: Loading Librosa...")
+            # print("Debug: Loading Librosa...")
             # so this isn't working hardcoded. It cannot find the file. But I want this part of the module -- lets find out
             # how to locally reference things
             librosa.load(dir_path + "/samples/1320_00000.mp3")
@@ -62,7 +67,7 @@ def preFlightChecks(download_models=False, using_cpu=False, mp3support=SUPPORT_M
                   "Please install ffmpeg and restart the program, or continue with no MP3 support.")
             SUPPORT_MP3 = False
 
-    print("debug: checking if cuda is available")
+    # print("debug: checking if cuda is available")
     if torch.cuda.is_available():
         device_id = torch.cuda.current_device()
         gpu_properties = torch.cuda.get_device_properties(device_id)
@@ -78,7 +83,7 @@ def preFlightChecks(download_models=False, using_cpu=False, mp3support=SUPPORT_M
     else:
         USE_CPU = True
     try:
-        print("debug: checking model paths...")
+        # print("debug: checking model paths...")
         ## Remind the user to download pretrained models if needed
         # check_model_paths(encoder_path=encoderpath,
         #                  synthesizer_path=synthpath,
@@ -97,7 +102,7 @@ def preFlightChecks(download_models=False, using_cpu=False, mp3support=SUPPORT_M
         encoder.load_model(encoderpath)
         synthesizer = Synthesizer(synthpath)
         vocoder.load_model(vocoderpath)
-        print("debug: running a test")
+        # print("debug: running a test")
         ## Run a test
         # Forward an audio waveform of zeroes that lasts 1 second. Notice how we can get the encoder's
         # sampling rate, which may differ.
@@ -162,8 +167,16 @@ def check_local_model_paths(encpath, synthpath, vocpath):
 
 class voiceclone:
 
-    def __init__(self, inputtext=None, encoderpath=DEFAULT_ENCODER_PATH, vocoderpath=DEFAULT_VOCODER_PATH,
-                 synthesizerpath=DEFAULT_SYNTHESIZER_PATH, voiceactor=None, savepath=None):
+    def __init__(self, inputtext=None, encoderpath=None, vocoderpath=None,
+                 synthesizerpath=None, voiceactor=None, savepath=None):
+        # This looks ugly. It feels wrong. But it works! I'm hoping someone else sees this and has inspiration to
+        # make it work as intended while not looking awful.
+        if encoderpath is None:
+            encoderpath = DEFAULT_ENCODER_PATH
+        if vocoderpath is None:
+            vocoderpath = DEFAULT_VOCODER_PATH
+        if synthesizerpath is None:
+            synthesizerpath = DEFAULT_SYNTHESIZER_PATH
 
         if inputtext is None:
             raise Exception("You must specify text to be vocoded into audio. ")
