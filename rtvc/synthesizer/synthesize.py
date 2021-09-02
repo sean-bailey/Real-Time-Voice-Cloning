@@ -37,7 +37,7 @@ def run_synthesis(in_dir, out_dir, model_dir, hparams):
                      lstm_dims=hparams.tts_lstm_dims,
                      postnet_K=hparams.tts_postnet_K,
                      num_highways=hparams.tts_num_highways,
-                     dropout=0., # Use zero dropout for gta mels
+                     dropout=0.,  # Use zero dropout for gta mels
                      stop_threshold=hparams.tts_stop_threshold,
                      speaker_embedding_size=hparams.speaker_embedding_size).to(device)
 

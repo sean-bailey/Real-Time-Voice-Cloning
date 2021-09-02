@@ -17,7 +17,7 @@ def discretized_mix_logistic_loss(y_hat, y, num_classes=65536,
                                   log_scale_min=None, reduce=True):
     if log_scale_min is None:
         log_scale_min = float(np.log(1e-14))
-    y_hat = y_hat.permute(0,2,1)
+    y_hat = y_hat.permute(0, 2, 1)
     assert y_hat.dim() == 3
     assert y_hat.size(1) % 3 == 0
     nr_mix = y_hat.size(1) // 3
@@ -69,8 +69,8 @@ def discretized_mix_logistic_loss(y_hat, y, num_classes=65536,
     inner_inner_cond = (cdf_delta > 1e-5).float()
 
     inner_inner_out = inner_inner_cond * \
-        torch.log(torch.clamp(cdf_delta, min=1e-12)) + \
-        (1. - inner_inner_cond) * (log_pdf_mid - np.log((num_classes - 1) / 2))
+                      torch.log(torch.clamp(cdf_delta, min=1e-12)) + \
+                      (1. - inner_inner_cond) * (log_pdf_mid - np.log((num_classes - 1) / 2))
     inner_cond = (y > 0.999).float()
     inner_out = inner_cond * log_one_minus_cdf_min + (1. - inner_cond) * inner_inner_out
     cond = (y < -0.999).float()
