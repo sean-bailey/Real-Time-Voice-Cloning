@@ -92,3 +92,6 @@ generated_wav -- the generated vocoded wav as raw bytecode. Can be accessed dire
 
 
 ```
+
+##CONTRIBUTING:
+If you'd like to contribute to this repo, please see the instructions in `CONTRIBUTING.md`.
