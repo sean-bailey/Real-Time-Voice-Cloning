@@ -36,7 +36,7 @@ DEFAULT_SYNTHESIZER_PATH = dir_path + "/synthesizer/saved_models/pretrained/pret
 
 
 # we just want to reutrn the audio -- not necessarily play it. No need to check if audio devices exist!
-def preFlightChecks(download_models=True, using_cpu=False, mp3support=SUPPORT_MP3, encoderpath=DEFAULT_ENCODER_PATH,
+def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_MP3, encoderpath=DEFAULT_ENCODER_PATH,
                     synthpath=DEFAULT_SYNTHESIZER_PATH,
                     vocoderpath=DEFAULT_SYNTHESIZER_PATH):
     global DEFAULT_SYNTHESIZER_PATH
@@ -238,5 +238,4 @@ class voiceclone:
         # sf.write(filename, generated_wav.astype(np.float32), synthesizer.sample_rate)
         # print("\nSaved output as %s\n\n" % filename)
 
-
-preFlightChecks()
+# preFlightChecks()
