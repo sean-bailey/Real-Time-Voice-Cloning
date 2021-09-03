@@ -1,69 +1,97 @@
-# Real-Time Voice Cloning
-This repository is an implementation of [Transfer Learning from Speaker Verification to
-Multispeaker Text-To-Speech Synthesis](https://arxiv.org/pdf/1806.04558.pdf) (SV2TTS) with a vocoder that works in real-time. Feel free to check [my thesis](https://matheo.uliege.be/handle/2268.2/6801) if you're curious or if you're looking for info I haven't documented. Mostly I would recommend giving a quick look to the figures beyond the introduction.
+# Real-Time Voice Cloning Module: voiceCloner
 
-My goal in this case would be to convert this into a module which can be loaded as a module to be used for my audiobook program.
+## Background:
 
+SV2TTS is a three-stage deep learning framework that allows to create a numerical representation of a voice from a few
+seconds of audio, and to use it to condition a text-to-speech model trained to generalize to new voices.
 
+If you would like to learn more, I heavily encourage you to
+visit [Real-Time Voice Cloning](https://github.com/CorentinJ/Real-Time-Voice-Cloning) by @CorentinJ, which I see as
+brilliant work.
 
-SV2TTS is a three-stage deep learning framework that allows to create a numerical representation of a voice from a few seconds of audio, and to use it to condition a text-to-speech model trained to generalize to new voices.
+This repository is a module based wrapper
+around [Real-Time Voice Cloning](https://github.com/CorentinJ/Real-Time-Voice-Cloning). The general idea is to have a
+simple, importable, Pythonic API to perform programmatic voice cloning tasks with. I very highly recommend checking out
+the original work, as I cannot take any credit for the initial research and development.
 
-**Video demonstration** (click the picture):
+I attempted to make this as simple to use as possible. In general, you will be able to install it, import it, and vocode
+a piece of text with any voice you can reference from any audio segment you can find -- including your own voice!
 
-[![Toolbox demo](https://i.imgur.com/8lFUlgz.png)](https://www.youtube.com/watch?v=-O_hYhToKoA)
+### Requirements:
 
-
-
-### Papers implemented  
-| URL | Designation | Title | Implementation source |
-| --- | ----------- | ----- | --------------------- |
-|[**1806.04558**](https://arxiv.org/pdf/1806.04558.pdf) | **SV2TTS** | **Transfer Learning from Speaker Verification to Multispeaker Text-To-Speech Synthesis** | This repo |
-|[1802.08435](https://arxiv.org/pdf/1802.08435.pdf) | WaveRNN (vocoder) | Efficient Neural Audio Synthesis | [fatchord/WaveRNN](https://github.com/fatchord/WaveRNN) |
-|[1703.10135](https://arxiv.org/pdf/1703.10135.pdf) | Tacotron (synthesizer) | Tacotron: Towards End-to-End Speech Synthesis | [fatchord/WaveRNN](https://github.com/fatchord/WaveRNN)
-|[1710.10467](https://arxiv.org/pdf/1710.10467.pdf) | GE2E (encoder)| Generalized End-To-End Loss for Speaker Verification | This repo |
-
-## News
-**14/02/21**: This repo now runs on PyTorch instead of Tensorflow, thanks to the help of @bluefish. If you wish to run the tensorflow version instead, checkout commit `5425557`.
-
-**13/11/19**: I'm now working full time and I will not maintain this repo anymore. To anyone who reads this:
-- **If you just want to clone your voice (and not someone else's):** I recommend our free plan on [Resemble.AI](https://www.resemble.ai/). You will get a better voice quality and less prosody errors.
-- **If this is not your case:** proceed with this repository, but you might end up being disappointed by the results. If you're planning to work on a serious project, my strong advice: find another TTS repo. Go [here](https://github.com/CorentinJ/Real-Time-Voice-Cloning/issues/364) for more info.
-
-**20/08/19:** I'm working on [resemblyzer](https://github.com/resemble-ai/Resemblyzer), an independent package for the voice encoder. You can use your trained encoder models from this repo with it.
-
-**06/07/19:** Need to run within a docker container on a remote server? See [here](https://sean.lane.sh/posts/2019/07/Running-the-Real-Time-Voice-Cloning-project-in-Docker/).
-
-**25/06/19:** Experimental support for low-memory GPUs (~2gb) added for the synthesizer. Pass `--low_mem` to `demo_cli.py` or `demo_toolbox.py` to enable it. It adds a big overhead, so it's not recommended if you have enough VRAM.
-
-
-## Setup
-
-### 1. Install Requirements
-
-**Python 3.6 or 3.7** is needed to run the toolbox.
+Requirements for this module are identical to Real-Time Voice Cloning. Python3.8+.
 
 * Install [PyTorch](https://pytorch.org/get-started/locally/) (>=1.0.1).
 * Install [ffmpeg](https://ffmpeg.org/download.html#get-packages).
-* Run `pip install -r requirements.txt` to install the remaining necessary packages.
 
-### 2. Download Pretrained Models
-Download the latest [here](https://github.com/CorentinJ/Real-Time-Voice-Cloning/wiki/Pretrained-models).
+### Download Pretrained Models
 
-### 3. (Optional) Test Configuration
-Before you download any dataset, you can begin by testing your configuration with:
+~~Download the latest [here](https://github.com/CorentinJ/Real-Time-Voice-Cloning/wiki/Pretrained-models).~~
 
-`python demo_cli.py`
+~~***Currently, you will need to download these models to get this module to function. This is a high priority work in
+progress to simplify this process.***~~
 
-If all tests pass, you're good to go.
+The current iteration of this code will automatically attempt to download and install the pretrained models into the
+library's location for you. If it is unsuccessful due to permissions issues (say you installed this library
+with `sudo pip3 install .`), then it will prompt you for the appropriate install location.
 
-### 4. (Optional) Download Datasets
-For playing with the toolbox alone, I only recommend downloading [`LibriSpeech/train-clean-100`](https://www.openslr.org/resources/12/train-clean-100.tar.gz). Extract the contents as `<datasets_root>/LibriSpeech/train-clean-100` where `<datasets_root>` is a directory of your choosing. Other datasets are supported in the toolbox, see [here](https://github.com/CorentinJ/Real-Time-Voice-Cloning/wiki/Training#datasets). You're free not to download any dataset, but then you will need your own data as audio files or you will have to record it with the toolbox.
+### Installation:
 
-### 5. Launch the Toolbox
-You can then try the toolbox:
+From the root of this repository, simply run:
 
-`python demo_toolbox.py -d <datasets_root>`  
-or  
-`python demo_toolbox.py`  
+```
+pip3 install .
+```
 
-depending on whether you downloaded any datasets. If you are running an X-server or if you have the error `Aborted (core dumped)`, see [this issue](https://github.com/CorentinJ/Real-Time-Voice-Cloning/issues/11#issuecomment-504733590).
+This will install voiceCloner into your Python location.
+
+### Useage:
+
+```
+import rtvc
+
+#it is highly recommended to run rtvc.preFlightChecks(), determine if your system is properly configured, attempt to download and install default models, has appropriate models installed, etc.
+#preFlightChecks() has the following options:
+#download_models -- Boolean, defaults True, tells function whether or not to automatically download and install default models
+#using_cpu -- Boolean, defaults False, flag of function to configure CPU or GPU (or to try with GPU at all)
+#mp3support -- Boolean, defaults True (but checks anyways), flag to check for / confirm mp3 support
+#encoderpath -- String, defaults to the DEFAULT_ENCODER_PATH, set to your encoder model path
+#vocoderpath -- String, defaults to the DEFAULT_VOCODER_PATH, set to your vocoder model path
+#synthpath -- String, defaults to the DEFAULT_SYNTHESIZER_PATH, set to your synthesizer path
+
+rtvc.preFlightChecks()
+
+#you will know if all systems check out if you see
+#"Done."
+
+rtvc.voiceclone(text="hello, world!",voiceactor="/path/to/spoken_voice.mp3")
+```
+
+Once preFlightChecks gets a valid encoder/vocoder/synthesizer model location, then for this session it will save it as
+the default locations, providing easy reference.
+
+#### voiceclone Class:
+
+Inputs:
+
+```
+inputtext -- Required String, is the input text to be vocoded, default None
+encoderpath -- Required encoder path, defaults to the DEFAULT_ENCODER_PATH if not specified (with original default of None)
+vocoderpath -- Required vocoder path, defaults to the DEFAULT_VOCODER_PATH if not specified (with original default of None)
+synthesizerpath -- Required synthesizer path, defaults to the DEFAULT_SYNTHESIZER_PATH if not specified (with original default of None)
+voiceactor -- Required String, is the path to the audio file to be referenced, Default None
+savepath -- Optional String, is the path to the desired save location and type of vocoded audio output, Default None
+
+```
+
+Outputs:
+
+```
+
+generated_wav -- the generated vocoded wav as raw bytecode. Can be accessed directly, ideally by the soundfile module
+
+
+```
+
+##CONTRIBUTING:
+If you'd like to contribute to this repo, please see the instructions in `CONTRIBUTING.md`.

@@ -1,7 +1,13 @@
+import time
+from datetime import datetime
+from pathlib import Path
+
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
+
 from rtvc.synthesizer import audio
 from rtvc.synthesizer.models.tacotron import Tacotron
 from rtvc.synthesizer.synthesizer_dataset import SynthesizerDataset, collate_synthesizer
@@ -10,20 +16,17 @@ from rtvc.synthesizer.utils.plot import plot_spectrogram
 from rtvc.synthesizer.utils.symbols import symbols
 from rtvc.synthesizer.utils.text import sequence_to_text
 from rtvc.vocoder.display import *
-from datetime import datetime
-import numpy as np
-from pathlib import Path
-import time
 
 
 def np_now(x: torch.Tensor): return x.detach().cpu().numpy()
 
+
 def time_string():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
-def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
-         backup_every: int, force_restart:bool, hparams):
 
+def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
+          backup_every: int, force_restart: bool, hparams):
     syn_dir = Path(syn_dir)
     models_dir = Path(models_dir)
     models_dir.mkdir(exist_ok=True)
@@ -38,20 +41,19 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
     wav_dir.mkdir(exist_ok=True)
     mel_output_dir.mkdir(exist_ok=True)
     meta_folder.mkdir(exist_ok=True)
-    
+
     weights_fpath = model_dir.joinpath(run_id).with_suffix(".pt")
     metadata_fpath = syn_dir.joinpath("train.txt")
-    
+
     print("Checkpoint path: {}".format(weights_fpath))
     print("Loading training data from: {}".format(metadata_fpath))
     print("Using model: Tacotron")
-    
+
     # Book keeping
     step = 0
     time_window = ValueWindow(100)
     loss_window = ValueWindow(100)
-    
-    
+
     # From WaveRNN/train_tacotron.py
     if torch.cuda.is_available():
         device = torch.device("cuda")
@@ -102,7 +104,7 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
         print("\nLoading weights at %s" % weights_fpath)
         model.load(weights_fpath, optimizer)
         print("Tacotron weights loaded from step %d" % model.step)
-    
+
     # Initialize the dataset
     metadata_fpath = syn_dir.joinpath("train.txt")
     mel_dir = syn_dir.joinpath("mels")
@@ -149,18 +151,18 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
                                  shuffle=True,
                                  pin_memory=True)
 
-        total_iters = len(dataset) 
+        total_iters = len(dataset)
         steps_per_epoch = np.ceil(total_iters / batch_size).astype(np.int32)
         epochs = np.ceil(training_steps / steps_per_epoch).astype(np.int32)
 
-        for epoch in range(1, epochs+1):
+        for epoch in range(1, epochs + 1):
             for i, (texts, mels, embeds, idx) in enumerate(data_loader, 1):
                 start_time = time.time()
 
                 # Generate stop tokens for training
                 stop = torch.ones(mels.shape[0], mels.shape[2])
                 for j, k in enumerate(idx):
-                    stop[j, :int(dataset.metadata[k][4])-1] = 0
+                    stop[j, :int(dataset.metadata[k][4]) - 1] = 0
 
                 texts = texts.to(device)
                 mels = mels.to(device)
@@ -198,15 +200,15 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
                 step = model.get_step()
                 k = step // 1000
 
-                msg = f"| Epoch: {epoch}/{epochs} ({i}/{steps_per_epoch}) | Loss: {loss_window.average:#.4} | {1./time_window.average:#.2} steps/s | Step: {k}k | "
+                msg = f"| Epoch: {epoch}/{epochs} ({i}/{steps_per_epoch}) | Loss: {loss_window.average:#.4} | {1. / time_window.average:#.2} steps/s | Step: {k}k | "
                 stream(msg)
 
                 # Backup or save model as appropriate
-                if backup_every != 0 and step % backup_every == 0 : 
+                if backup_every != 0 and step % backup_every == 0:
                     backup_fpath = Path("{}/{}_{}k.pt".format(str(weights_fpath.parent), run_id, k))
                     model.save(backup_fpath, optimizer)
 
-                if save_every != 0 and step % save_every == 0 : 
+                if save_every != 0 and step % save_every == 0:
                     # Must save latest optimizer state to ensure that resuming training
                     # doesn't produce artifacts
                     model.save(weights_fpath, optimizer)
@@ -242,6 +244,7 @@ def train(run_id: str, syn_dir: str, models_dir: str, save_every: int,
 
             # Add line break after every epoch
             print("")
+
 
 def eval_model(attention, mel_prediction, target_spectrogram, input_seq, step,
                plot_dir, mel_output_dir, wav_dir, sample_num, loss, hparams):
