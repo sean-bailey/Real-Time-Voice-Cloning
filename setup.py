@@ -26,7 +26,7 @@ keywords = ['pytorch', 'torch', 'tensorflow', 'machine learning', 'research', "v
 
 setuptools.setup(
     name="voiceCloner",
-    version="0.1.2",
+    version="0.1.3e",
     author="Sean Bailey",
     author_email="seanbailey518@gmail.com",
     description="This is a wrapper around the Real Time Voice Cloning project by @Corentinj (https://github.com/CorentinJ/Real-Time-Voice-Cloning)",

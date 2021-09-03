@@ -10,7 +10,6 @@ Provide an interface to enable:
 
 When first loaded, this module should perform pre-flight checks, and report whether or not its going to fail out.
 """
-import os
 from pathlib import Path
 
 import librosa
@@ -19,6 +18,7 @@ import soundfile as sf
 import torch
 from audioread.exceptions import NoBackendError
 
+from rtvc.download_install import *
 from rtvc.encoder import inference as encoder
 from rtvc.encoder.params_model import model_embedding_size as speaker_embedding_size
 from rtvc.synthesizer.inference import Synthesizer
@@ -28,32 +28,48 @@ from rtvc.vocoder import inference as vocoder
 
 USE_CPU = False
 SUPPORT_MP3 = True
-DEFAULT_ENCODER_PATH = "encoder/saved_models/pretrained.pt"
-DEFAULT_VOCODER_PATH = "vocoder/saved_models/pretrained/pretrained.pt"
-DEFAULT_SYNTHESIZER_PATH = "synthesizer/saved_models/pretrained/pretrained.pt"
+path = os.path.abspath(__file__)
+dir_path = os.path.dirname(path)
+DEFAULT_ENCODER_PATH = dir_path + "/encoder/saved_models/pretrained.pt"
+DEFAULT_VOCODER_PATH = dir_path + "/vocoder/saved_models/pretrained/pretrained.pt"
+DEFAULT_SYNTHESIZER_PATH = dir_path + "/synthesizer/saved_models/pretrained/pretrained.pt"
 
 
 # we just want to reutrn the audio -- not necessarily play it. No need to check if audio devices exist!
-def preFlightChecks(download_models=False, using_cpu=False, mp3support=SUPPORT_MP3, encoderpath=DEFAULT_ENCODER_PATH,
+def preFlightChecks(download_models=True, using_cpu=False, mp3support=SUPPORT_MP3, encoderpath=DEFAULT_ENCODER_PATH,
                     synthpath=DEFAULT_SYNTHESIZER_PATH,
                     vocoderpath=DEFAULT_SYNTHESIZER_PATH):
     global DEFAULT_SYNTHESIZER_PATH
     global DEFAULT_ENCODER_PATH
     global DEFAULT_VOCODER_PATH
-    path = os.path.abspath(__file__)
-    dir_path = os.path.dirname(path)
+    global path
+    global dir_path
+
     # check to see if the default exists. If it doesn't, prompt for it, then update it so that the module can work later on without error.
-    checkpaths = check_local_model_paths(encoderpath, synthpath, vocoderpath)
+    # checkpaths = check_local_model_paths(encoderpath, synthpath, vocoderpath)
     locationdict = {"encoder": encoderpath, "synthesizer": synthpath, "vocoder": vocoderpath}
-    for item in checkpaths:
-        if not checkpaths[item]:
-            locationdict[item] = input("Please enter the full path to the " + str(item) + " model >")
-    encoderpath = locationdict["encoder"]
-    synthpath = locationdict['synthesizer']
-    vocoderpath = locationdict['vocoder']
-    DEFAULT_ENCODER_PATH = encoderpath
-    DEFAULT_SYNTHESIZER_PATH = synthpath
-    DEFAULT_VOCODER_PATH = vocoderpath
+    allfound = False
+    # this will guarantee proper configuration!
+    while not allfound:
+        encoderpath = locationdict["encoder"]
+        synthpath = locationdict['synthesizer']
+        vocoderpath = locationdict['vocoder']
+        DEFAULT_ENCODER_PATH = encoderpath
+        DEFAULT_SYNTHESIZER_PATH = synthpath
+        DEFAULT_VOCODER_PATH = vocoderpath
+        checkpaths = check_local_model_paths(encoderpath, synthpath, vocoderpath)
+
+        allfound = True
+        for item in checkpaths:
+            if not checkpaths[item]:
+                allfound = False
+                if download_models:
+                    # here we will need to have defaultinstall() return a dictionary of where it installed the models,
+                    # and then have that get updated to the appropriate defaults. return it like locationdict.
+                    locationdict = defaultInstall()
+                    break
+                else:
+                    locationdict[item] = input("Please enter the full path to the " + str(item) + " model >")
 
     # first we need to check for if the GPU is available...
     if mp3support:
