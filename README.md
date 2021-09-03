@@ -15,9 +15,12 @@ Requirements for this module are identical to Real-Time Voice Cloning. Python3.8
 * Install [ffmpeg](https://ffmpeg.org/download.html#get-packages).
 
 ###Download Pretrained Models
-Download the latest [here](https://github.com/CorentinJ/Real-Time-Voice-Cloning/wiki/Pretrained-models).
+~~Download the latest [here](https://github.com/CorentinJ/Real-Time-Voice-Cloning/wiki/Pretrained-models).~~
 
-***Currently, you will need to download these models to get this module to function. This is a high priority work in progress to simplify this process.***
+~~***Currently, you will need to download these models to get this module to function. This is a high priority work in progress to simplify this process.***~~
+
+The current iteration of this code will automatically attempt to download and install the pretrained models into the library's location for you.
+If it is unsuccessful due to permissions issues (say you installed this library with `sudo pip3 install .`), then it will prompt you for the appropriate install location.
 
 ###Installation:
 
@@ -31,9 +34,10 @@ This will install voiceCloner into your Python location.
 ###Useage:
 ```
 import rtvc
-#when loaded, rtvc will run preFlightChecks, which will determine if your system is properly configured, has appropriate models installed, etc.
+#when loaded, rtvc will run preFlightChecks, which will determine if your system is properly configured, attempt to download and install default models, has appropriate models installed, etc.
 #It will fail if your system is not properly configured, or if you do not have appropriate encoder, vocoder and synthesizer models
-
+#you will know if all systems check out if you see
+#"Done."
 rtvc.voiceclone(text="hello, world!",voiceactor="/path/to/spoken_voice.mp3")
 ```
 The preFlightChecks will prompt you for the encoder, vocoder and synthesizer models if they
