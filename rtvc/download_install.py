@@ -64,6 +64,26 @@ def downloadModel(modelUrl=DEFAULT_URL):
     progress_bar.close()
 
     return filepath
+#I'm keeping the previous one because it works, but here is a more universal one
+def downloadFile(destpath,fileurl):
+    if not os.path.exists(destpath):
+        os.mkdir(destpath)
+    filepath=destpath+'/'+fileurl.split('/')[-1]
+    response = requests.get(fileurl, stream=True)
+    total_size_in_bytes = int(response.headers.get('content-length', 0))
+    block_size = 1024  # 1 Kibibyte
+    progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+    # with urllib.request.urlopen(modelUrl) as f:
+    with open(filepath, 'ab') as myfile:
+        for data in response.iter_content(block_size):
+            progress_bar.update(len(data))
+            myfile.write(data)
+        # myfile.write(f.read())
+    progress_bar.close()
+
+    return filepath
+
+
 
 
 def extractModel(filepath):
@@ -132,6 +152,7 @@ def installChecker(function, arglist=[]):
                 installed_DEFAULT_ENCODER_PATH = installed_dir_path + "/encoder/"
                 installed_DEFAULT_VOCODER_PATH = installed_dir_path + "/vocoder/"
                 installed_DEFAULT_SYNTHESIZER_PATH = installed_dir_path + "/synthesizer/"
+
 
                 print("Trying again...")
     return returnedvalue
