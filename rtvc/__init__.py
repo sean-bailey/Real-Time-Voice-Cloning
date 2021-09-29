@@ -25,6 +25,8 @@ from rtvc.synthesizer.inference import Synthesizer
 from rtvc.utils.argutils import print_args
 from rtvc.utils.modelutils import check_model_paths
 from rtvc.vocoder import inference as vocoder
+import audioread
+import time
 
 USE_CPU = False
 SUPPORT_MP3 = True
@@ -67,9 +69,12 @@ def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_
                     # here we will need to have defaultinstall() return a dictionary of where it installed the models,
                     # and then have that get updated to the appropriate defaults. return it like locationdict.
                     locationdict = defaultInstall()
+                    dir_path=locationdict['vocoder'].split('vocoder/')[0]
                     break
                 else:
                     locationdict[item] = input("Please enter the full path to the " + str(item) + " model >")
+                    dir_path=input("Please enter the base directory you would like to test from: >")
+
 
     # first we need to check for if the GPU is available...
     if mp3support:
@@ -77,9 +82,15 @@ def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_
             # print("Debug: Loading Librosa...")
             # so this isn't working hardcoded. It cannot find the file. But I want this part of the module -- lets find out
             # how to locally reference things
-            downloadedfile=downloadFile(dir_path+"/samples/","https://github.com/sean-bailey/Real-Time-Voice-Cloning/raw/master/rtvc/samples/1320_00000.mp3")
+            downloadedfile=downloadFile(dir_path+"samples","https://github.com/sean-bailey/Real-Time-Voice-Cloning/raw/master/rtvc/samples/1320_00000.mp3")
+            #something's gone wrong with librosa... it's saying the mp3 file has incompatible data, and yet when loaded separately, it works fine.
+            #Update: nothing is wrong with Librosa. There is something wrong with how PyCharm and Librosa interact, as opening python3 with an independent
+            #shell instead of the python interpreter for PyCharm makes it work perfectly fine. Interesting.
             librosa.load(downloadedfile)
-        except NoBackendError:
+            print("Librosa read successful")
+        except Exception as e: #NoBackendError:
+            print(e)
+            exit()
             print("Librosa will be unable to open mp3 files if additional software is not installed.\n"
                   "Please install ffmpeg and restart the program, or continue with no MP3 support.")
             SUPPORT_MP3 = False
