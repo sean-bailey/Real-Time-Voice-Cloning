@@ -37,20 +37,24 @@ import errno
 import os
 import shutil
 import zipfile
-
+import uuid
 import requests
 from tqdm import tqdm
 
-installed_path = os.path.abspath(__file__)
-installed_dir_path = os.path.dirname(installed_path)
-installed_DEFAULT_ENCODER_PATH = installed_dir_path + "/encoder/"
-installed_DEFAULT_VOCODER_PATH = installed_dir_path + "/vocoder/"
-installed_DEFAULT_SYNTHESIZER_PATH = installed_dir_path + "/synthesizer/"
+
 DEFAULT_URL = "https://github.com/blue-fish/Real-Time-Voice-Cloning/releases/download/v1.0/pretrained.zip"
 
 
-def downloadModel(modelUrl=DEFAULT_URL):
-    filepath = installed_dir_path + "/" + modelUrl.split('/')[-1]
+def downloadModel(argdict):
+    tempdirpath=argdict['tempdirpath']
+    if "modelUrl" in argdict.keys():
+        modelUrl=argdict['modelUrl']
+    else:
+        modelUrl=DEFAULT_URL
+    if not os.path.exists(tempdirpath):
+        os.mkdir(tempdirpath)
+    filepath=os.path.abspath(tempdirpath)+modelUrl.split('/')[-1]
+    #filepath = installed_dir_path + "/" + modelUrl.split('/')[-1]
     response = requests.get(modelUrl, stream=True)
     total_size_in_bytes = int(response.headers.get('content-length', 0))
     block_size = 1024  # 1 Kibibyte
@@ -84,15 +88,57 @@ def downloadFile(destpath,fileurl):
     return filepath
 
 
+def extractModel(argdict):
+    filepath=argdict['filepath']
+    tempdir=argdict['tempdirpath']
+    encoder=argdict['encoder']
+    vocoder=argdict['vocoder']
+    synthesizer=argdict['synthesizer']
+    #actually, at this point we know that one of them does not exist. We don't know which ones.
+    #check to see if each exists. IF not, then create a directory for each and copy the extracted data into it.
+    tempdict={"encoder":encoder,"vocoder":vocoder,"synthesizer":synthesizer}
+    outputdict=tempdict
+    copydict={"encoder":False,"vocoder":False,"synthesizer":False}
+    for key in tempdict.keys():
+        #for some unknown reason we are failing here. it's just hanging. why?
+        tempfullpath=os.path.abspath(tempdict[key])
+        #I don't understand -- it's stuck in an infinite loop
+        if os.path.exists(tempfullpath):
+            if os.path.isfile(tempfullpath):
+                continue
+            else:
+                copydict[key]=True #we do need to copy the file
+                #turns out that shutil.copytree copies the outer directory too
 
-
-def extractModel(filepath):
-    foldername = installed_dir_path + "/"  # +filepath.split('/')[-1].split('.')[0]
+                if os.path.exists(tempfullpath+"/"+key):
+                    shutil.rmtree(tempfullpath+"/"+key)
+                #    os.mkdir(tempfullpath+"/"+key)
+                #I wonder -- it loops here. Is this "resetting" the item in the loop?
+                #easy way to find out...
+                outputdict[key]=tempfullpath+"/"+key
+        else:
+            print("This dir doesn't exist. making it...")
+            os.mkdir(tempfullpath)
+            copydict[key] = True  # we do need to copy the file
+            if os.path.exists(tempfullpath + "/" + key):
+                shutil.rmtree(tempfullpath + "/" + key)
+            #os.mkdir(tempfullpath + "/" + key)
+            outputdict[key] = tempfullpath + "/" + key
+    #so we need to actually get clever. We need to see if we need the encoder, vocoder and synthesizer.
+    #idea: extractall to temporary directory, then use the copy function to copy appropriately, and then delete the temp
+    #dir.
+    #foldername = installed_dir_path + "/"  # +filepath.split('/')[-1].split('.')[0]
     with zipfile.ZipFile(filepath, 'r') as zip_ref:
-        zip_ref.extractall(installed_dir_path)
+        zip_ref.extractall(tempdir)
+    for key in copydict.keys():
+        if copydict[key]:
+            copy(tempdir+"/"+key,tempdict[key])
+
+    shutil.rmtree(tempdir)
     # shutil.rmtree(filepath)
+
     os.remove(filepath)
-    return foldername
+    return outputdict
 
 
 def copy(src, dest):
@@ -116,59 +162,64 @@ def getFullFilePath(rootfolder):
     return finalfilepath
 
 
-def installModels(folderpath, destpath=None):
-    destdict = {"encoder": installed_DEFAULT_ENCODER_PATH, "vocoder": installed_DEFAULT_VOCODER_PATH,
-                "synthesizer": installed_DEFAULT_SYNTHESIZER_PATH}
+def verifyModels(argdict):
+    destdict = {"encoder": argdict["encoder"], "vocoder": argdict['vocoder'],
+                "synthesizer": argdict['synthesizer']}
     for item in destdict:
         destdict[item] = getFullFilePath(destdict[item])
     return destdict
 
+#ok so global vables here are goofing everything up. That's not how I want to do things.
 
-def installChecker(function, arglist=[]):
+
+def installChecker(function, argdict):
     # this is going to manage the variables the function gets called with
-    global installed_path
-    global installed_dir_path
-    global installed_DEFAULT_ENCODER_PATH
-    global installed_DEFAULT_VOCODER_PATH
-    global installed_DEFAULT_SYNTHESIZER_PATH
 
     returnedvalue = None
     successfullycompleted = False
     while not successfullycompleted:
         try:
-            if len(arglist) > 0:
-                if len(arglist) == 2:
-                    returnedvalue = function(arglist[0], arglist[1])
-                else:
-                    returnedvalue = function(arglist[0])
-            else:
-                returnedvalue = function()
+            returnedvalue=function(argdict)
             successfullycompleted = True
         except Exception as e:
+            testing=input(str(e))
             if "PERMISSION DENIED" in str(e).upper():
-                print("Permission denied for downloading/installing to " + str(installed_dir_path) + "\n")
+                print("Permission denied for downloading/installing to " + str(os.path.dirname(os.path.abspath(argdict['encoder']))) + "\n")
                 installed_path = input("Please enter a new base path to download and install to >")
-                installed_dir_path = os.path.dirname(installed_path)
-                installed_DEFAULT_ENCODER_PATH = installed_dir_path + "/encoder/"
-                installed_DEFAULT_VOCODER_PATH = installed_dir_path + "/vocoder/"
-                installed_DEFAULT_SYNTHESIZER_PATH = installed_dir_path + "/synthesizer/"
-
-
+                argdict['encoder']=argdict['vocoder']=argdict['synthesizer']=installed_path
+                argdict['tempdirpath']=os.path.dirname(os.path.abspath(installed_path))+"/"+argdict['tempdirpath'].split('/')[-1]
                 print("Trying again...")
-    return returnedvalue
+    return returnedvalue,argdict
 
 
-def defaultInstall():
+def defaultInstall(encoderpath,vocoderpath,synthpath):
+
+    #so it all starts here.
+    #let's have it check for encoderpath, vocoderpath and synthpath.
+    #we know if we are here that the files do not exist.
+    # Create the encoder/vocoder/synthesizer directory
+    #as necessary. have a flag for which models need installing. Extract the models from the zip file to a temporary
+    #folder, and then copy only the appropriate models to the appropriate directory.
+    #return the model paths.
+    argdict={}
+    tempdirpath=os.path.dirname(os.path.abspath(encoderpath))+"/"+str(uuid.uuid4())
     print("Downloading and installing default models, stand by...")
-    zipfilepath = installChecker(downloadModel)
-    extractedfolder = installChecker(extractModel, [zipfilepath])
-    returned_dict = installChecker(installModels, [extractedfolder])
+    argdict["tempdirpath"]=tempdirpath
+
+    #use a dictionary instead of a list of arguments.
+
+    argdict['encoder']=encoderpath
+    argdict['vocoder']=vocoderpath
+    argdict['synthesizer']=synthpath
+    print("debug: getting zipfilepath")
+    zipfilepath, argdict = installChecker(downloadModel, argdict)
+    argdict['filepath'] = zipfilepath
+    print("debug: getting extracted folders")
+    extractedfolders,argdict = installChecker(extractModel, argdict)
+    argdict['encoder']=extractedfolders['encoder']
+    argdict['vocoder']=extractedfolders['vocoder']
+    argdict['synthesizer']=extractedfolders['synthesizer']
+    print("debug: verifying install")
+    returned_dict,argdict = installChecker(verifyModels, argdict)
     return returned_dict
-    # try:
-    #    zipfilepath=downloadModel()
-    #    extractedfolder=extractModel(zipfilepath)
-    #    installModels(extractedfolder)
-    #    return 1
-    # except Exception as e:
-    #    print(e)
-    # return locationdict = {"encoder": encoderpath, "synthesizer": synthpath, "vocoder": vocoderpath}
+
