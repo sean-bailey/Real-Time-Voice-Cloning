@@ -36,14 +36,20 @@ DEFAULT_SYNTHESIZER_PATH = dir_path + "/synthesizer/saved_models/pretrained/pret
 
 
 # we just want to reutrn the audio -- not necessarily play it. No need to check if audio devices exist!
-def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_MP3, encoderpath=DEFAULT_ENCODER_PATH,
-                    synthpath=DEFAULT_SYNTHESIZER_PATH,
-                    vocoderpath=DEFAULT_SYNTHESIZER_PATH):
+def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_MP3, encoderpath=None,
+                    synthpath=None,
+                    vocoderpath=None):
     global DEFAULT_SYNTHESIZER_PATH
     global DEFAULT_ENCODER_PATH
     global DEFAULT_VOCODER_PATH
     global path
     global dir_path
+    if encoderpath is None:
+        encoderpath=DEFAULT_ENCODER_PATH,
+    if vocoderpath is None:
+        vocoderpath=DEFAULT_VOCODER_PATH
+    if synthpath is None:
+        synthpath = DEFAULT_SYNTHESIZER_PATH
 
     # check to see if the default exists. If it doesn't, prompt for it, then update it so that the module can work later on without error.
     # checkpaths = check_local_model_paths(encoderpath, synthpath, vocoderpath)
@@ -57,6 +63,7 @@ def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_
         DEFAULT_ENCODER_PATH = encoderpath
         DEFAULT_SYNTHESIZER_PATH = synthpath
         DEFAULT_VOCODER_PATH = vocoderpath
+
         checkpaths = check_local_model_paths(encoderpath, synthpath, vocoderpath)
 
         allfound = True
@@ -66,18 +73,24 @@ def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_
                 if download_models:
                     # here we will need to have defaultinstall() return a dictionary of where it installed the models,
                     # and then have that get updated to the appropriate defaults. return it like locationdict.
-                    locationdict = defaultInstall()
+                    locationdict = defaultInstall(encoderpath=encoderpath,vocoderpath=vocoderpath,synthpath=synthpath)
+                    dir_path=locationdict['vocoder'].split("/vocoder")[0]
                     break
                 else:
                     locationdict[item] = input("Please enter the full path to the " + str(item) + " model >")
-
+                    #dir_path=input("Please enter the path for downloading to: ")
     # first we need to check for if the GPU is available...
     if mp3support:
         try:
             # print("Debug: Loading Librosa...")
             # so this isn't working hardcoded. It cannot find the file. But I want this part of the module -- lets find out
             # how to locally reference things
-            librosa.load(dir_path + "/samples/1320_00000.mp3")
+            #print("downloading sample file...")
+            if not os.path.exists(os.path.abspath(dir_path)+"/samples/1320_00000.mp3"):
+                downloadedfile=downloadFile(os.path.abspath(dir_path)+"/samples","https://github.com/sean-bailey/Real-Time-Voice-Cloning/raw/master/rtvc/samples/1320_00000.mp3")
+            else:
+                downloadedfile=(os.path.abspath(dir_path)+"/samples/1320_00000.mp3")
+            librosa.load(downloadedfile)
         except NoBackendError:
             print("Librosa will be unable to open mp3 files if additional software is not installed.\n"
                   "Please install ffmpeg and restart the program, or continue with no MP3 support.")
@@ -168,11 +181,11 @@ def check_local_model_paths(encpath, synthpath, vocpath):
     encfound = False
     synthfound = False
     vocfound = False
-    if (os.path.exists(encpath)):
+    if (os.path.exists(encpath) and os.path.isfile(encpath)):
         encfound = True
-    if os.path.exists(synthpath):
+    if os.path.exists(synthpath) and os.path.isfile(synthpath):
         synthfound = True
-    if os.path.exists(vocpath):
+    if os.path.exists(vocpath) and os.path.isfile(vocpath):
         vocfound = True
 
     return {"encoder": encfound, "synthesizer": synthfound, "vocoder": vocfound}
