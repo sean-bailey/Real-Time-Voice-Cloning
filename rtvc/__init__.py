@@ -86,8 +86,10 @@ def preFlightChecks(download_models=True, using_cpu=USE_CPU, mp3support=SUPPORT_
             # so this isn't working hardcoded. It cannot find the file. But I want this part of the module -- lets find out
             # how to locally reference things
             #print("downloading sample file...")
-            #downloadedfile=downloadFile(dir_path+"/samples","https://github.com/sean-bailey/Real-Time-Voice-Cloning/raw/master/rtvc/samples/1320_00000.mp3")
-            downloadedfile=(dir_path+"/samples/1320_00000.mp3")
+            if not os.path.exists(os.path.abspath(dir_path)+"/samples/1320_00000.mp3"):
+                downloadedfile=downloadFile(os.path.abspath(dir_path)+"/samples","https://github.com/sean-bailey/Real-Time-Voice-Cloning/raw/master/rtvc/samples/1320_00000.mp3")
+            else:
+                downloadedfile=(os.path.abspath(dir_path)+"/samples/1320_00000.mp3")
             librosa.load(downloadedfile)
         except NoBackendError:
             print("Librosa will be unable to open mp3 files if additional software is not installed.\n"
